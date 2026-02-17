@@ -5,6 +5,8 @@ use std::{
     path::Path,
 };
 
+use sqlformat::{Dialect, FormatOptions, Indent, QueryParams, format};
+
 fn main() {
     let current_dir = env::current_dir().unwrap();
     let dir = Path::new(&current_dir);
@@ -21,17 +23,90 @@ fn traverse_dirs(dir: &Path) -> io::Result<()> {
             if path.is_dir() {
                 traverse_dirs(&path)?;
             } else {
-                if !String::from(entry.file_name().to_str().unwrap_or("")).ends_with(".py") {
+                let filename = String::from(entry.file_name().to_str().unwrap_or(""));
+                if !filename.ends_with(".py") {
                     continue;
                 }
 
-                let filename = String::from(entry.file_name().to_str().unwrap_or(""));
-                let contents = fs::read_to_string(&path).unwrap_or(String::from(""));
+                let contents = fs::read_to_string(&path).unwrap_or_default();
+                println!("Formatting: {}", filename);
+                let new_contents = format_python_file(&contents);
 
-                println!("{filename}");
-                println!("{contents}");
+                if new_contents != contents {
+                    println!("Changes applied to: {}", filename);
+                    fs::write(&path, new_contents)?;
+                }
             }
         }
     }
     Ok(())
+}
+
+
+fn format_python_file(contents: &str) -> String {
+    let mut output = String::with_capacity(contents.len());
+    let mut unprocessed_contents = contents;
+
+    while let Some(start) = unprocessed_contents.find(r#"""""#) {
+        let (prefix, after_prefix) = unprocessed_contents.split_at(start);
+        output.push_str(prefix);
+
+        let indent: String = prefix
+            .lines()
+            .next_back()
+            .unwrap_or("")
+            .chars()
+            .take_while(|c| matches!(c, ' ' | '\t'))
+            .collect();
+
+        unprocessed_contents = &after_prefix[3..];
+
+        let Some(end_rel) = unprocessed_contents.find(r#"""""#) else {
+            output.push_str(r#"""""#);
+            output.push_str(unprocessed_contents);
+            return output;
+        };
+
+        let (raw_sql, after_sql) = unprocessed_contents.split_at(end_rel);
+        let do_format = raw_sql.trim_end().ends_with(';');
+
+        output.push_str(r#"""""#);
+
+        if do_format {
+            let formatted = format_sql(raw_sql);
+
+            output.push('\n');
+
+            for line in formatted.lines() {
+                output.push_str(&indent);
+                output.push_str(line);
+                output.push('\n');
+            }
+
+            output.push_str(&indent);
+
+        } else {
+            output.push_str(raw_sql);
+        }
+
+        output.push_str(r#"""""#);
+        unprocessed_contents = &after_sql[3..];
+    }
+
+    output.push_str(unprocessed_contents);
+    output
+}
+
+pub fn format_sql(sql: &str) -> String {
+    format(
+        sql,
+        &QueryParams::None,
+        &FormatOptions {
+            indent: sqlformat::Indent::Spaces(4),
+            uppercase: Some(true),
+            joins_as_top_level: true,
+            dialect: Dialect::PostgreSql,
+            ..Default::default()
+        },
+    )
 }
