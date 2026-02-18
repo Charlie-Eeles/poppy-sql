@@ -1,7 +1,16 @@
 [package]
 name = "poppy-sql"
 version = "0.1.0"
+authors = ["Charlie Eeles <charlie.eeles@gmail.com>"]
 edition = "2024"
+license = "MIT"
+description = "PostgreSQL formatter for standalone and embedded SQL"
+repository = "https://github.com/Charlie-Eeles/poppy-sql"
+
+[[bin]]
+bench = false
+name = "poppy-sql"
+path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.5.59", features = ["derive"] }
