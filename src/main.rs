@@ -5,7 +5,7 @@ use std::{
     path::Path,
 };
 
-use sqlformat::{Dialect, FormatOptions, Indent, QueryParams, format};
+use sqlformat::{Dialect, FormatOptions, QueryParams, format};
 
 fn main() {
     let current_dir = env::current_dir().unwrap();
@@ -24,17 +24,31 @@ fn traverse_dirs(dir: &Path) -> io::Result<()> {
                 traverse_dirs(&path)?;
             } else {
                 let filename = String::from(entry.file_name().to_str().unwrap_or(""));
-                if !filename.ends_with(".py") {
-                    continue;
+                if !filename.ends_with(".sql") && !filename.ends_with(".py") {
+                    continue
                 }
 
-                let contents = fs::read_to_string(&path).unwrap_or_default();
-                println!("Formatting: {}", filename);
-                let new_contents = format_python_file(&contents);
+                println!("{}", filename);
 
-                if new_contents != contents {
-                    println!("Changes applied to: {}", filename);
-                    fs::write(&path, new_contents)?;
+                if filename.ends_with(".sql") {
+                    let contents = fs::read_to_string(&path).unwrap_or_default();
+                    let mut new_contents = format_sql(&contents);
+                    new_contents.push('\n');
+
+                    if new_contents != contents {
+                        println!("Changes applied to: {}", filename);
+                        fs::write(&path, new_contents)?;
+                    }
+                }
+
+                if filename.ends_with(".py") {
+                    let contents = fs::read_to_string(&path).unwrap_or_default();
+                    let new_contents = format_python_file(&contents);
+
+                    if new_contents != contents {
+                        println!("Changes applied to: {}", filename);
+                        fs::write(&path, new_contents)?;
+                    }
                 }
             }
         }
@@ -106,6 +120,7 @@ pub fn format_sql(sql: &str) -> String {
             uppercase: Some(true),
             joins_as_top_level: true,
             dialect: Dialect::PostgreSql,
+            lines_between_queries: 1,
             ..Default::default()
         },
     )
