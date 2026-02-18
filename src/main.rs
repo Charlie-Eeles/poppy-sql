@@ -63,7 +63,7 @@ fn format_file(filename: String, path: PathBuf) -> io::Result<()> {
 
     if filename.ends_with(".sql") {
         let contents = fs::read_to_string(&path).unwrap_or_default();
-        
+
         if contents.contains(IGNORE_STRING) {
             return Ok(());
         }
@@ -95,6 +95,9 @@ fn format_sql_in_python_file(contents: &str) -> String {
     let mut unprocessed_contents = contents;
 
     while let Some(start) = unprocessed_contents.find(r#"""""#) {
+        let is_fstring =
+            start > 0 && matches!(unprocessed_contents.as_bytes()[start - 1], b'f' | b'F');
+
         let (prefix, after_prefix) = unprocessed_contents.split_at(start);
         output.push_str(prefix);
 
@@ -115,7 +118,8 @@ fn format_sql_in_python_file(contents: &str) -> String {
         };
 
         let (raw_sql, after_sql) = unprocessed_contents.split_at(end_rel);
-        let do_format = raw_sql.trim_end().ends_with(';') && !raw_sql.contains(IGNORE_STRING);
+        let do_format =
+            !is_fstring && raw_sql.trim_end().ends_with(';') && !raw_sql.contains(IGNORE_STRING);
 
         output.push_str(r#"""""#);
 
