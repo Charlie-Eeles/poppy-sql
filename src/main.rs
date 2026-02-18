@@ -2,7 +2,7 @@ use std::{
     env::{self},
     fs::{self},
     io,
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use sqlformat::{Dialect, FormatOptions, QueryParams, format};
@@ -28,36 +28,41 @@ fn traverse_dirs(dir: &Path) -> io::Result<()> {
                     continue
                 }
 
-                println!("{}", filename);
-
-                if filename.ends_with(".sql") {
-                    let contents = fs::read_to_string(&path).unwrap_or_default();
-                    let mut new_contents = format_sql(&contents);
-                    new_contents.push('\n');
-
-                    if new_contents != contents {
-                        println!("Changes applied to: {}", filename);
-                        fs::write(&path, new_contents)?;
-                    }
-                }
-
-                if filename.ends_with(".py") {
-                    let contents = fs::read_to_string(&path).unwrap_or_default();
-                    let new_contents = format_python_file(&contents);
-
-                    if new_contents != contents {
-                        println!("Changes applied to: {}", filename);
-                        fs::write(&path, new_contents)?;
-                    }
-                }
+                format_file(filename, path)?;
             }
         }
     }
     Ok(())
 }
 
+fn format_file(filename: String, path: PathBuf) -> io::Result<()> {
+    println!("{}", filename);
 
-fn format_python_file(contents: &str) -> String {
+    if filename.ends_with(".sql") {
+        let contents = fs::read_to_string(&path).unwrap_or_default();
+        let mut new_contents = format_sql(&contents);
+        new_contents.push('\n');
+
+        if new_contents != contents {
+            println!("Changes applied to: {}", filename);
+            fs::write(&path, new_contents)?;
+        }
+    }
+
+    if filename.ends_with(".py") {
+        let contents = fs::read_to_string(&path).unwrap_or_default();
+        let new_contents = format_sql_in_python_file(&contents);
+
+        if new_contents != contents {
+            println!("Changes applied to: {}", filename);
+            fs::write(&path, new_contents)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn format_sql_in_python_file(contents: &str) -> String {
     let mut output = String::with_capacity(contents.len());
     let mut unprocessed_contents = contents;
 
