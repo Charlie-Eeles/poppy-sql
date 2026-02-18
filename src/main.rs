@@ -8,6 +8,8 @@ use std::{
 use clap::Parser;
 use sqlformat::{Dialect, FormatOptions, QueryParams, format};
 
+const IGNORE_STRING: &str = "--poppy-ignore";
+
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 struct Args {
@@ -61,6 +63,11 @@ fn format_file(filename: String, path: PathBuf) -> io::Result<()> {
 
     if filename.ends_with(".sql") {
         let contents = fs::read_to_string(&path).unwrap_or_default();
+        
+        if contents.contains(IGNORE_STRING) {
+            return Ok(());
+        }
+
         let mut new_contents = format_sql(&contents);
         new_contents.push('\n');
 
@@ -108,7 +115,7 @@ fn format_sql_in_python_file(contents: &str) -> String {
         };
 
         let (raw_sql, after_sql) = unprocessed_contents.split_at(end_rel);
-        let do_format = raw_sql.trim_end().ends_with(';');
+        let do_format = raw_sql.trim_end().ends_with(';') && !raw_sql.contains(IGNORE_STRING);
 
         output.push_str(r#"""""#);
 
