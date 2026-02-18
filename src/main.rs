@@ -1,17 +1,38 @@
 use std::{
-    env::{self},
+    env,
     fs::{self},
     io,
     path::{Path, PathBuf},
 };
 
+use clap::Parser;
 use sqlformat::{Dialect, FormatOptions, QueryParams, format};
 
-fn main() {
+#[derive(Parser, Debug)]
+#[command(author, version, about)]
+struct Args {
+    #[arg(long)]
+    file: Option<PathBuf>,
+}
+
+fn main() -> io::Result<()> {
+    let arg = Args::parse();
+
+    if let Some(path) = arg.file {
+        let filename = String::from(path.file_name().unwrap().to_str().unwrap_or(""));
+
+        if !filename.ends_with(".sql") && !filename.ends_with(".py") {
+            println!("unsupported file format");
+            return Ok(());
+        }
+
+        format_file(filename, path)?;
+        return Ok(());
+    }
+
     let current_dir = env::current_dir().unwrap();
     let dir = Path::new(&current_dir);
-
-    traverse_dirs(dir).unwrap();
+    traverse_dirs(dir)
 }
 
 fn traverse_dirs(dir: &Path) -> io::Result<()> {
@@ -25,7 +46,7 @@ fn traverse_dirs(dir: &Path) -> io::Result<()> {
             } else {
                 let filename = String::from(entry.file_name().to_str().unwrap_or(""));
                 if !filename.ends_with(".sql") && !filename.ends_with(".py") {
-                    continue
+                    continue;
                 }
 
                 format_file(filename, path)?;
@@ -103,7 +124,6 @@ fn format_sql_in_python_file(contents: &str) -> String {
             }
 
             output.push_str(&indent);
-
         } else {
             output.push_str(raw_sql);
         }
