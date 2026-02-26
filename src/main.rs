@@ -156,7 +156,7 @@ pub fn format_sql(sql: &str) -> String {
             uppercase: Some(true),
             joins_as_top_level: true,
             dialect: Dialect::PostgreSql,
-            lines_between_queries: 1,
+            lines_between_queries: 2,
             ..Default::default()
         },
     )
