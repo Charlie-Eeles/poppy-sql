@@ -8,6 +8,9 @@ use std::{
 use clap::Parser;
 use sqlformat::{Dialect, FormatOptions, QueryParams, format};
 
+use sqlparser::dialect::PostgreSqlDialect;
+use sqlparser::parser::Parser as SqlParser;
+
 const IGNORE_STRING: &str = "--poppy-ignore";
 
 #[derive(Parser, Debug)]
@@ -93,6 +96,7 @@ fn format_file(filename: String, path: PathBuf) -> io::Result<()> {
 fn format_sql_in_python_file(contents: &str) -> String {
     let mut output = String::with_capacity(contents.len());
     let mut unprocessed_contents = contents;
+    let dialect = PostgreSqlDialect {};
 
     while let Some(start) = unprocessed_contents.find(r#"""""#) {
         let is_fstring =
@@ -118,8 +122,10 @@ fn format_sql_in_python_file(contents: &str) -> String {
         };
 
         let (raw_sql, after_sql) = unprocessed_contents.split_at(end_rel);
-        let do_format =
-            !is_fstring && raw_sql.trim_end().ends_with(';') && !raw_sql.contains(IGNORE_STRING);
+
+        let do_format = !is_fstring
+            && SqlParser::parse_sql(&dialect, raw_sql).is_ok()
+            && !raw_sql.contains(IGNORE_STRING);
 
         output.push_str(r#"""""#);
 
