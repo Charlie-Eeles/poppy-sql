@@ -125,11 +125,11 @@ pub fn find_sql_in_python_file(contents: &str, format_file_content: bool) -> Pyt
         let (raw_sql, after_sql) = unprocessed_contents.split_at(end_rel);
 
         let is_valid_sql_query = !is_fstring
-            && !raw_sql.contains(IGNORE_STRING);
+            && SqlParser::parse_sql(&dialect, raw_sql).is_ok();
 
         let do_format = format_file_content
             && is_valid_sql_query
-            && SqlParser::parse_sql(&dialect, raw_sql).is_ok();
+            && !raw_sql.contains(IGNORE_STRING);
 
         output.push_str(r#"""""#);
 
