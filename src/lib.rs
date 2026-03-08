@@ -10,6 +10,11 @@ use sqlparser::parser::Parser as SqlParser;
 
 pub const IGNORE_STRING: &str = "--poppy-ignore";
 
+pub struct PythonSqlResult {
+    pub content: String,
+    pub queries: Vec<String>,
+}
+
 pub fn process_path(path: &Path) -> io::Result<()> {
     if path.is_dir() {
         traverse_dirs(path)
@@ -73,7 +78,8 @@ pub fn format_file(filename: &str, path: &Path) -> io::Result<()> {
 
     if filename.ends_with(".py") {
         let contents = fs::read_to_string(path).unwrap_or_default();
-        let new_contents = format_sql_in_python_file(&contents);
+        let result = find_sql_in_python_file(&contents, true);
+        let new_contents = result.content;
 
         if new_contents != contents {
             println!("Changes applied to: {filename}");
@@ -84,8 +90,9 @@ pub fn format_file(filename: &str, path: &Path) -> io::Result<()> {
     Ok(())
 }
 
-pub fn format_sql_in_python_file(contents: &str) -> String {
+pub fn find_sql_in_python_file(contents: &str, format_file_content: bool) -> PythonSqlResult {
     let mut output = String::with_capacity(contents.len());
+    let mut queries = Vec::new();
     let mut unprocessed_contents = contents;
     let dialect = PostgreSqlDialect {};
 
@@ -109,16 +116,26 @@ pub fn format_sql_in_python_file(contents: &str) -> String {
         let Some(end_rel) = unprocessed_contents.find(r#"""""#) else {
             output.push_str(r#"""""#);
             output.push_str(unprocessed_contents);
-            return output;
+            return PythonSqlResult {
+                content: output,
+                queries,
+            };
         };
 
         let (raw_sql, after_sql) = unprocessed_contents.split_at(end_rel);
 
-        let do_format = !is_fstring
-            && SqlParser::parse_sql(&dialect, raw_sql).is_ok()
+        let is_valid_sql_query = !is_fstring
             && !raw_sql.contains(IGNORE_STRING);
 
+        let do_format = format_file_content
+            && is_valid_sql_query
+            && SqlParser::parse_sql(&dialect, raw_sql).is_ok();
+
         output.push_str(r#"""""#);
+
+        if is_valid_sql_query {
+            queries.push(raw_sql.to_string());
+        }
 
         if do_format {
             let formatted = format_sql(raw_sql);
@@ -141,7 +158,11 @@ pub fn format_sql_in_python_file(contents: &str) -> String {
     }
 
     output.push_str(unprocessed_contents);
-    output
+
+    PythonSqlResult {
+        content: output,
+        queries,
+    }
 }
 
 pub fn format_sql(sql: &str) -> String {
