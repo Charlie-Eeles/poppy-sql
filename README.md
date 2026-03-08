@@ -13,6 +13,8 @@ Poppy-sql is available to install through cargo using: `cargo install poppy-sql`
 
 Run `poppy-sql` in a directory with the files you want formatted in it or `poppy-sql --file '{target_file}'` to format a specific file.
 
+Poppy-sql is also available as a library for your rust projects.
+
 ### What file types are supported?
 At the moment, `.sql` files and `.py` files. 
 
