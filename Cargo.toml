@@ -1,6 +1,6 @@
 [package]
 name = "poppy-sql"
-version = "0.1.8"
+version = "0.1.9"
 authors = ["Charlie Eeles <charlie.eeles@gmail.com>"]
 edition = "2024"
 license = "MIT"

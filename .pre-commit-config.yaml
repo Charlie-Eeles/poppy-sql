@@ -1,0 +1,74 @@
+default_stages:
+  - "pre-commit"
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+
+      - id: check-case-conflict
+
+      - id: check-symlinks
+
+      - id: end-of-file-fixer
+        exclude: >
+          (?x)(
+            \.npmrc$
+          )
+
+      - id: trailing-whitespace
+
+      - id: check-ast
+
+      - id: debug-statements
+
+      - id: check-yaml
+        args:
+          - --allow-multiple-documents
+
+      - id: detect-private-key
+
+  - repo: https://github.com/AndrejOrsula/pre-commit-cargo
+    rev: 0.4.0
+    hooks:
+      - id: cargo-fmt
+        pass_filenames: false
+        args: ["--manifest-path", "Cargo.toml"]
+
+      - id: cargo-update
+        pass_filenames: false
+        args: ["--manifest-path", "Cargo.toml"]
+
+      - id: cargo-clippy
+        pass_filenames: false
+        args: ["--manifest-path", "Cargo.toml", "--all-targets", "--all-features"]
+
+      - id: cargo-check
+        pass_filenames: false
+        args: ["--manifest-path", "Cargo.toml", "--all-targets", "--all-features"]
+
+      - id: cargo-doc
+        pass_filenames: false
+        args: ["--manifest-path", "Cargo.toml", "--no-deps", "--document-private-items"]
+
+      - id: cargo-fix
+        pass_filenames: false
+        args: ["--manifest-path", "Cargo.toml", "--allow-dirty", "--allow-staged"]
+
+  - repo: local
+    hooks:
+      - id: poppy-sql
+        name: poppy-sql
+        language: system
+        entry: >
+          bash -lc '
+            cargo install poppy-sql
+            for f in "$@"; do
+              poppy-sql --file "$f"
+            done
+          ' --
+        pass_filenames: true
+        require_serial: true
+        stages: [pre-commit]
+        files: \.(sql)$

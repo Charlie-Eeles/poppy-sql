@@ -1,10 +1,6 @@
-use std::{
-    fs,
-    io,
-    path::Path,
-};
+use std::{fs, io, path::Path};
 
-use sqlformat::{format, Dialect, FormatOptions, QueryParams};
+use sqlformat::{Dialect, FormatOptions, QueryParams, format};
 use sqlparser::dialect::PostgreSqlDialect;
 use sqlparser::parser::Parser as SqlParser;
 
@@ -124,12 +120,10 @@ pub fn find_sql_in_python_file(contents: &str, format_file_content: bool) -> Pyt
 
         let (raw_sql, after_sql) = unprocessed_contents.split_at(end_rel);
 
-        let is_valid_sql_query = !is_fstring
-            && SqlParser::parse_sql(&dialect, raw_sql).is_ok();
+        let is_valid_sql_query = !is_fstring && SqlParser::parse_sql(&dialect, raw_sql).is_ok();
 
-        let do_format = format_file_content
-            && is_valid_sql_query
-            && !raw_sql.contains(IGNORE_STRING);
+        let do_format =
+            format_file_content && is_valid_sql_query && !raw_sql.contains(IGNORE_STRING);
 
         output.push_str(r#"""""#);
 
