@@ -1,3 +1,5 @@
+[![Crates.io](https://img.shields.io/crates/v/poppy-sql.svg)](https://crates.io/crates/poppy-sql)
+
 ## Poppy-sql
 PostgreSQL formatter for standalone and embedded SQL
 
