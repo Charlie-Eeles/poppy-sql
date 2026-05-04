@@ -18,16 +18,16 @@ pub struct PythonSqlResult {
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     #[serde(default)]
-    dialect: String,
-    format: FormatConfig,
+    pub dialect: String,
+    pub format: FormatConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct FormatConfig {
-    indent: Option<u8>,
-    uppercase: Option<bool>,
-    joins_as_top_level: Option<bool>,
-    lines_between_queries: Option<u8>,
+    pub indent: Option<u8>,
+    pub uppercase: Option<bool>,
+    pub joins_as_top_level: Option<bool>,
+    pub lines_between_queries: Option<u8>,
 }
 
 impl Default for Config {
