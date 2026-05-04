@@ -16,14 +16,14 @@ pub struct PythonSqlResult {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-struct Config {
+pub struct Config {
     #[serde(default)]
     dialect: String,
     format: FormatConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
-struct FormatConfig {
+pub struct FormatConfig {
     indent: Option<u8>,
     uppercase: Option<bool>,
     joins_as_top_level: Option<bool>,
@@ -93,7 +93,7 @@ pub fn process_path(path: &Path) -> io::Result<()> {
     }
 }
 
-fn traverse_dirs(dir: &Path, parent_config: Config) -> io::Result<()> {
+pub fn traverse_dirs(dir: &Path, parent_config: Config) -> io::Result<()> {
     if !dir.is_dir() {
         return Ok(());
     }
@@ -171,7 +171,7 @@ fn invalid_config(error: toml::de::Error) -> io::Error {
     )
 }
 
-fn format_file(filename: &str, path: &Path, config: &Config) -> io::Result<()> {
+pub fn format_file(filename: &str, path: &Path, config: &Config) -> io::Result<()> {
     println!("{filename}");
 
     if filename.ends_with(".sql") {
@@ -204,7 +204,7 @@ fn format_file(filename: &str, path: &Path, config: &Config) -> io::Result<()> {
     Ok(())
 }
 
-fn find_sql_in_python_file(
+pub fn find_sql_in_python_file(
     contents: &str,
     format_file_content: bool,
     config: &Config,
@@ -307,6 +307,6 @@ fn format_sql(sql: &str, config: &Config) -> String {
     )
 }
 
-fn is_supported_file(filename: &str) -> bool {
+pub fn is_supported_file(filename: &str) -> bool {
     filename.ends_with(".sql") || filename.ends_with(".py")
 }
