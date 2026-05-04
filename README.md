@@ -1,7 +1,12 @@
 [![Crates.io](https://img.shields.io/crates/v/poppy-sql.svg)](https://crates.io/crates/poppy-sql)
 
 ## Poppy-sql
-PostgreSQL formatter for standalone and embedded SQL
+Parser and formatter for standalone and embedded SQL
+
+### Dialect support
+Explicit support for Postgres, MySQL and SQlite dialects.
+
+Generic SQL dialect supported.
 
 ### What is this for?
 I like to use raw SQL queries, but maintaining consistent formatting for embedded SQL queries can be quite a pain.

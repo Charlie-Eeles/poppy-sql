@@ -2,7 +2,7 @@ use std::{fs, io, path::Path};
 
 use serde::Deserialize;
 use sqlformat::{Dialect, FormatOptions, QueryParams, format};
-use sqlparser::dialect::PostgreSqlDialect;
+use sqlparser::dialect::{GenericDialect, MySqlDialect, PostgreSqlDialect, SQLiteDialect};
 use sqlparser::parser::Parser as SqlParser;
 
 pub const IGNORE_STRING: &str = "--poppy-ignore";
@@ -18,6 +18,7 @@ pub struct PythonSqlResult {
 #[derive(Debug, Clone, Deserialize)]
 struct Config {
     #[serde(default)]
+    dialect: String,
     format: FormatConfig,
 }
 
@@ -49,6 +50,7 @@ impl Default for FormatConfig {
 impl Config {
     fn merge(self, override_config: Config) -> Self {
         Self {
+            dialect: self.dialect,
             format: self.format.merge(override_config.format),
         }
     }
@@ -210,7 +212,6 @@ fn find_sql_in_python_file(
     let mut output = String::with_capacity(contents.len());
     let mut queries = Vec::new();
     let mut unprocessed_contents = contents;
-    let dialect = PostgreSqlDialect {};
 
     while let Some(start) = unprocessed_contents.find(r#"""""#) {
         let is_fstring =
@@ -240,7 +241,14 @@ fn find_sql_in_python_file(
 
         let (raw_sql, after_sql) = unprocessed_contents.split_at(end_rel);
 
-        let is_valid_sql_query = !is_fstring && SqlParser::parse_sql(&dialect, raw_sql).is_ok();
+        let parsed_sql = match config.dialect.as_str() {
+            "PostgreSQL" => SqlParser::parse_sql(&PostgreSqlDialect {}, raw_sql),
+            "MySQL" => SqlParser::parse_sql(&MySqlDialect {}, raw_sql),
+            "SQLite" => SqlParser::parse_sql(&SQLiteDialect {}, raw_sql),
+            _ => SqlParser::parse_sql(&GenericDialect {}, raw_sql),
+        };
+
+        let is_valid_sql_query = !is_fstring && parsed_sql.is_ok();
 
         let do_format =
             format_file_content && is_valid_sql_query && !raw_sql.contains(IGNORE_STRING);
@@ -289,7 +297,10 @@ fn format_sql(sql: &str, config: &Config) -> String {
             indent: sqlformat::Indent::Spaces(format_config.indent.unwrap_or(4)),
             uppercase: format_config.uppercase,
             joins_as_top_level: format_config.joins_as_top_level.unwrap_or(true),
-            dialect: Dialect::PostgreSql,
+            dialect: match config.dialect.as_str() {
+                "PostgreSQL" => Dialect::PostgreSql,
+                _ => Dialect::Generic,
+            },
             lines_between_queries: format_config.lines_between_queries.unwrap_or(2),
             ..Default::default()
         },

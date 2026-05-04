@@ -1,5 +1,17 @@
+# The dialect of SQL to use for parsing/formatting
+# expects: string from the following options: "Generic" | "PostgreSQL" | "MySQL", "SQLite"; recommended: Be specific for best results!
+dialect = "Generic"
+
 [format]
+# The number of spaces to use when indenting queries
+# expects: u8; recommended: 0-10
 indent = 4
+# Whether or not to use capitals for keywords
+# expects: boolean; recommended: true
 uppercase = true
+# Consider any JOIN statement as a top level keyword instead of a reserved keyword
+# expects: boolean; recommended: true
 joins_as_top_level = true
+# How many line breaks should follow a query
+# expects: u8; recommended: 0-4
 lines_between_queries = 2
