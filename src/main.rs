@@ -1,21 +1,34 @@
-use std::{env, io};
+use std::{env, io, path::PathBuf};
 
 use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 struct Args {
-    #[arg(long)]
-    file: Option<std::path::PathBuf>,
+    #[arg(long = "file", value_name = "FILE")]
+    files_from_option: Vec<PathBuf>,
+
+    #[arg(value_name = "FILE")]
+    files: Vec<PathBuf>,
 }
 
 fn main() -> io::Result<()> {
     let args = Args::parse();
 
-    if let Some(path) = args.file {
-        return poppy_sql::process_path(&path);
+    let paths = args
+        .files_from_option
+        .into_iter()
+        .chain(args.files)
+        .collect::<Vec<_>>();
+
+    if paths.is_empty() {
+        let current_dir = env::current_dir()?;
+        return poppy_sql::process_path(&current_dir);
     }
 
-    let current_dir = env::current_dir()?;
-    poppy_sql::process_path(&current_dir)
+    for path in paths {
+        poppy_sql::process_path(&path)?;
+    }
+
+    Ok(())
 }

@@ -1,7 +1,7 @@
 - id: poppy-sql
   name: poppy-sql
   description: Run poppy-sql over supported files
-  entry: poppy-sql --file
+  entry: poppy-sql
   language: rust
   pass_filenames: true
   require_serial: true
