@@ -1,9 +1,8 @@
 - id: poppy-sql
   name: poppy-sql
   description: Run poppy-sql over supported files
-  entry: poppy-sql
+  entry: poppy-sql --file
   language: rust
   pass_filenames: true
   require_serial: true
-  stages: [pre-commit]
-  files: \.(py|sql)$
+  files: '\.(py|sql)$'
