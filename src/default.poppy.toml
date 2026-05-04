@@ -1,0 +1,5 @@
+[format]
+indent = 4
+uppercase = true
+joins_as_top_level = true
+lines_between_queries = 2

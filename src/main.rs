@@ -10,12 +10,12 @@ struct Args {
 }
 
 fn main() -> io::Result<()> {
-    let arg = Args::parse();
+    let args = Args::parse();
 
-    if let Some(path) = arg.file {
+    if let Some(path) = args.file {
         return poppy_sql::process_path(&path);
     }
 
     let current_dir = env::current_dir()?;
-    poppy_sql::traverse_dirs(&current_dir)
+    poppy_sql::process_path(&current_dir)
 }

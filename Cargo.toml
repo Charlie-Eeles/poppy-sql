@@ -1,13 +1,15 @@
 [package]
 name = "poppy-sql"
-version = "0.1.13"
+version = "0.1.14"
 authors = ["Charlie Eeles <charlie@starflower.sh>"]
 edition = "2024"
 license = "Apache-2.0"
-description = "PostgreSQL formatter for standalone and embedded SQL"
+description = "PostgreSQL parser and formatter for standalone and embedded SQL"
 repository = "https://github.com/Charlie-Eeles/poppy-sql"
 
 [dependencies]
 clap = { version = "4.5.59", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
 sqlformat = "0.5.0"
 sqlparser = "0.61.0"
+toml = "1.1.2"
