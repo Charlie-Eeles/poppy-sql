@@ -4,16 +4,16 @@
 Parser and formatter for standalone and embedded SQL
 
 ### Dialect support
-Explicit support for Postgres, MySQL and SQlite dialects.
+Explicit support for PostgreSQL, MySQL and SQlite dialects.
 
 Generic SQL dialect supported.
 
 ### What is this for?
 I like to use raw SQL queries, but maintaining consistent formatting for embedded SQL queries can be quite a pain.
 
-This project aims to format PostgreSQL queries embedded in a variety of filetypes.
+This project aims to format SQL queries embedded in a variety of filetypes.
 
-It does this by parsing strings in files and formatting them if they're valid PostgreSQL queries.
+It does this by parsing strings in files and formatting them if they're valid SQL queries.
 
 ### How to use?
 Poppy-sql is available to install through cargo using: `cargo install poppy-sql`
