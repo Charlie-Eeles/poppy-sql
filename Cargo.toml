@@ -13,3 +13,4 @@ serde = { version = "1.0.228", features = ["derive"] }
 sqlformat = "0.5.0"
 sqlparser = "0.61.0"
 toml = "1.1.2"
+walkdir = "2.5.0"

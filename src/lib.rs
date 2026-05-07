@@ -1,7 +1,14 @@
-use std::{fs, io, path::Path};
+use std::{
+    collections::HashMap,
+    io,
+    path::{Path, PathBuf},
+};
 
-use crate::config::{Config, config_for_dir, config_for_file};
+use walkdir::WalkDir;
+
+use crate::config::{Config, config_for_file, config_for_walkdir_path};
 use crate::formatting::format_file;
+
 pub mod config;
 pub mod constants;
 pub mod formatting;
@@ -34,23 +41,36 @@ pub fn traverse_dirs(dir: &Path, parent_config: Config) -> io::Result<()> {
         return Ok(());
     }
 
-    let config = config_for_dir(dir, parent_config)?;
+    let mut configs = HashMap::<PathBuf, Config>::new();
 
-    for entry in fs::read_dir(dir)? {
-        let entry = entry?;
+    for entry in WalkDir::new(dir)
+        .into_iter()
+        .filter_entry(|entry| {
+            !entry
+                .file_name()
+                .to_str()
+                .is_some_and(|filename| filename.starts_with('.'))
+        })
+        .filter_map(Result::ok)
+    {
         let path = entry.path();
 
-        if path.is_dir() {
-            traverse_dirs(&path, config.clone())?;
-        } else {
-            let filename = entry.file_name().to_str().unwrap_or("").to_string();
-
-            if !is_supported_file(&filename) {
-                continue;
-            }
-
-            format_file(&filename, &path, &config)?;
+        if !path.is_file() {
+            continue;
         }
+
+        let filename = path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_string();
+
+        if !is_supported_file(&filename) {
+            continue;
+        }
+
+        let config = config_for_walkdir_path(path, dir, parent_config.clone(), &mut configs)?;
+        format_file(&filename, path, &config)?;
     }
 
     Ok(())
