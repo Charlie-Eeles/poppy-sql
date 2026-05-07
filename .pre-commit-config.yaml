@@ -56,19 +56,7 @@ repos:
         pass_filenames: false
         args: ["--manifest-path", "Cargo.toml", "--allow-dirty", "--allow-staged"]
 
-  - repo: local
+  - repo: https://github.com/starflower-sh/poppy-sql
+    rev: v0.4.2
     hooks:
       - id: poppy-sql
-        name: poppy-sql
-        language: system
-        entry: >
-          bash -lc '
-            cargo install poppy-sql
-            for f in "$@"; do
-              poppy-sql --file "$f"
-            done
-          ' --
-        pass_filenames: true
-        require_serial: true
-        stages: [pre-commit]
-        files: \.(sql)$
