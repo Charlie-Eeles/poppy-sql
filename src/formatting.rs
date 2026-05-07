@@ -4,6 +4,7 @@ use sqlformat::{Dialect, FormatOptions, QueryParams, format};
 
 use crate::Config;
 use crate::constants::IGNORE_STRING;
+use crate::parsing::javascript::find_sql_in_javascript_file;
 use crate::parsing::python::find_sql_in_python_file;
 use crate::parsing::rust::find_sql_in_rust_file;
 
@@ -40,6 +41,21 @@ pub fn format_file(filename: &str, path: &Path, config: &Config) -> io::Result<(
     if filename.ends_with(".rs") {
         let contents = fs::read_to_string(path).unwrap_or_default();
         let result = find_sql_in_rust_file(&contents, true, config);
+        let new_contents = result.content;
+
+        if new_contents != contents {
+            println!("Changes applied to: {filename}");
+            fs::write(path, new_contents)?;
+        }
+    }
+
+    if filename.ends_with(".js")
+        || filename.ends_with(".ts")
+        || filename.ends_with(".mjs")
+        || filename.ends_with(".vue")
+    {
+        let contents = fs::read_to_string(path).unwrap_or_default();
+        let result = find_sql_in_javascript_file(&contents, true, config);
         let new_contents = result.content;
 
         if new_contents != contents {

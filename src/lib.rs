@@ -57,5 +57,11 @@ pub fn traverse_dirs(dir: &Path, parent_config: Config) -> io::Result<()> {
 }
 
 pub fn is_supported_file(filename: &str) -> bool {
-    filename.ends_with(".sql") || filename.ends_with(".py") || filename.ends_with(".rs")
+    filename.ends_with(".sql")
+        || filename.ends_with(".py")
+        || filename.ends_with(".rs")
+        || filename.ends_with(".js")
+        || filename.ends_with(".ts")
+        || filename.ends_with(".mjs")
+        || filename.ends_with(".vue")
 }
