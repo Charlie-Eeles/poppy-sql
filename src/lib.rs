@@ -70,6 +70,20 @@ pub fn traverse_dirs(dir: &Path, parent_config: Config) -> io::Result<()> {
         }
 
         let config = config_for_walkdir_path(path, dir, parent_config.clone(), &mut configs)?;
+
+        let Some(extension) = path.extension().and_then(|s| s.to_str()) else {
+            continue;
+        };
+
+        if !config
+            .filetypes()
+            .iter()
+            .filter_map(|value| value.as_str())
+            .any(|filetype| filetype == "*" || filetype == extension)
+        {
+            continue;
+        }
+
         format_file(&filename, path, &config)?;
     }
 

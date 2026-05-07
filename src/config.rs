@@ -5,13 +5,16 @@ use std::{
 };
 
 use serde::Deserialize;
+use toml::value::Array;
 
 use crate::constants::{CONFIG_FILE, DEFAULT_CONFIG};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
+    pub dialect: Option<String>,
+    pub filetypes: Option<Array>,
+
     #[serde(default)]
-    pub dialect: String,
     pub format: FormatConfig,
 }
 
@@ -43,13 +46,22 @@ impl Default for FormatConfig {
 impl Config {
     fn merge(self, override_config: Config) -> Self {
         Self {
-            dialect: if override_config.dialect.is_empty() {
-                self.dialect
-            } else {
-                override_config.dialect
-            },
+            dialect: override_config.dialect.or(self.dialect),
+            filetypes: override_config.filetypes.or(self.filetypes),
             format: self.format.merge(override_config.format),
         }
+    }
+
+    pub fn dialect(&self) -> &str {
+        self.dialect
+            .as_deref()
+            .expect("dialect should be set after merging with default config")
+    }
+
+    pub fn filetypes(&self) -> &Array {
+        self.filetypes
+            .as_ref()
+            .expect("filetypes should be set after merging with default config")
     }
 }
 

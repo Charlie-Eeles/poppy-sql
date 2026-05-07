@@ -77,7 +77,7 @@ pub fn format_sql(sql: &str, config: &Config) -> String {
             indent: sqlformat::Indent::Spaces(format_config.indent.unwrap_or(4)),
             uppercase: format_config.uppercase,
             joins_as_top_level: format_config.joins_as_top_level.unwrap_or(true),
-            dialect: match config.dialect.as_str() {
+            dialect: match config.dialect() {
                 "PostgreSQL" => Dialect::PostgreSql,
                 _ => Dialect::Generic,
             },

@@ -40,7 +40,7 @@ pub fn find_sql_in_javascript_file(
 
         let (raw_sql, after_sql) = unprocessed_contents.split_at(end_rel);
 
-        let parsed_sql = match config.dialect.as_str() {
+        let parsed_sql = match config.dialect() {
             "PostgreSQL" => SqlParser::parse_sql(&PostgreSqlDialect {}, raw_sql),
             "MySQL" => SqlParser::parse_sql(&MySqlDialect {}, raw_sql),
             "SQLite" => SqlParser::parse_sql(&SQLiteDialect {}, raw_sql),
