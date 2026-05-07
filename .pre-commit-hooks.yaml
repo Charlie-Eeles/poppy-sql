@@ -5,4 +5,4 @@
   language: rust
   pass_filenames: true
   require_serial: true
-  files: '\.(py|sql)$'
+  files: '\.(py|sql|ts|js|mjs|vue|rs)$'
