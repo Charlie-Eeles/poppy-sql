@@ -1,28 +1,54 @@
 [![Crates.io](https://img.shields.io/crates/v/poppy-sql.svg)](https://crates.io/crates/poppy-sql)
 
 ## Poppy-sql
-Parser and formatter for standalone and embedded SQL
+Very fast parser and formatter for standalone and embedded SQL
 
 ### Dialect support
-Explicit support for PostgreSQL, MySQL and SQlite dialects.
+Explicit support for:
+- PostgreSQL
+- MySQL
+- SQLite
 
 Generic SQL dialect supported.
 
 ### What is this for?
-I like to use raw SQL queries, but maintaining consistent formatting for embedded SQL queries can be quite a pain.
+Raw SQL doesn't only live in SQL files, it's often embedded in application code.
 
-This project aims to format SQL queries embedded in a variety of filetypes.
-
-It does this by parsing strings in files and formatting them if they're valid SQL queries.
+Poppy-sql is useful for:
+- Finding all of the queries in a directory to return them as a parsed SQL result to be consumed as a library.
+- Formatting all of the queries found in a directory with an easy to manage configuration as a binary.
 
 ### How to use?
+
+#### As a formatter (binary)
 Poppy-sql is available to install through cargo using: `cargo install poppy-sql`
 
-Run `poppy-sql` in a directory with the files you want formatted in it or `poppy-sql --file '{target_file}'` to format a specific file.
+Run `poppy-sql` in a directory with the files you want formatted in it, `poppy-sql '{target_file}'` to format a specific file, or `poppy-sql '{target_file1} {target_file2}'` to format multiple files.
 
-Poppy-sql is also available as a library for your rust projects.
+You can ignore queries on a per-query basis by adding a comment anywhere in the query like: `-- poppy-ignore`
+
+It can be integrated into your `.pre-commit-config.yaml` like:
+
+```yaml
+repos:
+  - repo: https://github.com/starflower-sh/poppy-sql
+    rev: v0.4.0
+    hooks:
+      - id: poppy-sql
+```
+
+
+#### As a parser (library)
+Poppy-sql is also available as a library for your rust projects where you can parse files using the parsing modules.
 
 ### What file types are supported?
-At the moment, `.sql` files and `.py` files.
+Currently: ["sql", "py", "rs", "ts", "js", "mjs", "vue"]
 
-Other file types will be ignored if poppy-sql is run in the containing folder, or print an error message if specifically targeted.
+Other file types will be ignored if Poppy-sql is run in the containing folder, or print an error message if specifically targeted.
+
+Dotfiles and some misc directories are skipped (like node_modules), exact matches can be found in the constants module.
+
+### Is it ready to use?
+Poppy-sql is in active development, but you should be able to use its latest releases with a touch of caution.
+
+Be aware that Poppy-sql follows semantic versioning to represent backwards incompatible changes and always double check the formatted results.
