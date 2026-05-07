@@ -37,6 +37,10 @@ repos:
       - id: poppy-sql
 ```
 
+You can set configuration by creating a `.poppy.toml` file.\
+Reference the `default.poppy.toml` file for the expected configuration format.\
+The default file will be used to populate values that aren't specified in your `.poppy.toml`.\
+Poppy-sql will reference the nearest ancestor config file at or below the directory the format command is run, so you can have different config files apply in the same run of `poppy-sql`.
 
 #### As a parser (library)
 Poppy-sql is also available as a library for your rust projects where you can parse files using the parsing modules.
