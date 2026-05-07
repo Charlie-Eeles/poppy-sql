@@ -46,7 +46,20 @@ pub fn process_path(path: &Path) -> io::Result<()> {
             .to_string();
 
         if !is_supported_file(path) {
-            println!("unsupported file format");
+            println!("Unsupported file format");
+            return Ok(());
+        }
+
+        let Some(extension) = path.extension().and_then(|s| s.to_str()) else {
+            return Ok(());
+        };
+
+        if !config
+            .filetypes()
+            .iter()
+            .filter_map(|value| value.as_str())
+            .any(|filetype| filetype == "*" || filetype == extension)
+        {
             return Ok(());
         }
 
