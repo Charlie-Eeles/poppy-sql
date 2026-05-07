@@ -4,15 +4,34 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use walkdir::WalkDir;
+use walkdir::{DirEntry, WalkDir};
 
-use crate::config::{Config, config_for_file, config_for_walkdir_path};
 use crate::formatting::format_file;
+use crate::{
+    config::{Config, config_for_file, config_for_walkdir_path},
+    constants::{SKIPPED_DIRS, SUPPORTED_EXTENSIONS},
+};
 
 pub mod config;
 pub mod constants;
 pub mod formatting;
 pub mod parsing;
+
+fn should_walk_entry(entry: &DirEntry) -> bool {
+    let Some(filename) = entry.file_name().to_str() else {
+        return false;
+    };
+
+    if filename.starts_with('.') && filename != "." {
+        return false;
+    }
+
+    if entry.file_type().is_dir() && SKIPPED_DIRS.contains(&filename) {
+        return false;
+    }
+
+    true
+}
 
 pub fn process_path(path: &Path) -> io::Result<()> {
     let config = Config::default();
@@ -26,7 +45,7 @@ pub fn process_path(path: &Path) -> io::Result<()> {
             .unwrap_or("")
             .to_string();
 
-        if !is_supported_file(&filename) {
+        if !is_supported_file(path) {
             println!("unsupported file format");
             return Ok(());
         }
@@ -45,17 +64,12 @@ pub fn traverse_dirs(dir: &Path, parent_config: Config) -> io::Result<()> {
 
     for entry in WalkDir::new(dir)
         .into_iter()
-        .filter_entry(|entry| {
-            !entry
-                .file_name()
-                .to_str()
-                .is_some_and(|filename| filename.starts_with('.'))
-        })
+        .filter_entry(should_walk_entry)
         .filter_map(Result::ok)
     {
         let path = entry.path();
 
-        if !path.is_file() {
+        if !path.is_file() || !is_supported_file(path) {
             continue;
         }
 
@@ -64,10 +78,6 @@ pub fn traverse_dirs(dir: &Path, parent_config: Config) -> io::Result<()> {
             .and_then(|s| s.to_str())
             .unwrap_or("")
             .to_string();
-
-        if !is_supported_file(&filename) {
-            continue;
-        }
 
         let config = config_for_walkdir_path(path, dir, parent_config.clone(), &mut configs)?;
 
@@ -90,12 +100,8 @@ pub fn traverse_dirs(dir: &Path, parent_config: Config) -> io::Result<()> {
     Ok(())
 }
 
-pub fn is_supported_file(filename: &str) -> bool {
-    filename.ends_with(".sql")
-        || filename.ends_with(".py")
-        || filename.ends_with(".rs")
-        || filename.ends_with(".js")
-        || filename.ends_with(".ts")
-        || filename.ends_with(".mjs")
-        || filename.ends_with(".vue")
+pub fn is_supported_file(path: &Path) -> bool {
+    path.extension()
+        .and_then(|s| s.to_str())
+        .is_some_and(|extension| SUPPORTED_EXTENSIONS.contains(&extension))
 }
