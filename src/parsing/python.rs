@@ -4,17 +4,13 @@ use sqlparser::parser::Parser as SqlParser;
 use crate::Config;
 use crate::constants::IGNORE_STRING;
 use crate::formatting::format_sql;
-
-pub struct PythonSqlResult {
-    pub content: String,
-    pub queries: Vec<String>,
-}
+use crate::parsing::common::ParsedSqlResult;
 
 pub fn find_sql_in_python_file(
     contents: &str,
     format_file_content: bool,
     config: &Config,
-) -> PythonSqlResult {
+) -> ParsedSqlResult {
     let mut output = String::with_capacity(contents.len());
     let mut queries = Vec::new();
     let mut unprocessed_contents = contents;
@@ -39,7 +35,7 @@ pub fn find_sql_in_python_file(
         let Some(end_rel) = unprocessed_contents.find(r#"""""#) else {
             output.push_str(r#"""""#);
             output.push_str(unprocessed_contents);
-            return PythonSqlResult {
+            return ParsedSqlResult {
                 content: output,
                 queries,
             };
@@ -87,7 +83,7 @@ pub fn find_sql_in_python_file(
 
     output.push_str(unprocessed_contents);
 
-    PythonSqlResult {
+    ParsedSqlResult {
         content: output,
         queries,
     }
