@@ -11,6 +11,6 @@ repository = "https://github.com/Charlie-Eeles/poppy-sql"
 clap = { version = "4.5.59", features = ["derive"] }
 serde = { version = "1.0.228", features = ["derive"] }
 sqlformat = "0.5.0"
-sqlparser = "0.61.0"
+sqlparser = "0.62.0"
 toml = "1.1.2"
 walkdir = "2.5.0"
