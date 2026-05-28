@@ -19,6 +19,11 @@ pub fn format_file(filename: &str, path: &Path, config: &Config) -> io::Result<(
         }
 
         let mut new_contents = format_sql(&contents, config);
+
+        if new_contents.chars().last() != Some(';') && config.format.add_semicolons.unwrap_or(false)
+        {
+            new_contents.push(';');
+        }
         new_contents.push('\n');
 
         if new_contents != contents {

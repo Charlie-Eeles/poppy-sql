@@ -19,3 +19,6 @@ joins_as_top_level = true
 # How many line breaks should follow a query
 # expects: u8; recommended: 0-4
 lines_between_queries = 2
+# Whether or not to add closing semicolons
+# expects: boolean; recommended: true but if you build queries with separate statements it may be disruptive
+add_semicolons = true

@@ -24,6 +24,7 @@ pub struct FormatConfig {
     pub uppercase: Option<bool>,
     pub joins_as_top_level: Option<bool>,
     pub lines_between_queries: Option<u8>,
+    pub add_semicolons: Option<bool>,
 }
 
 impl Default for Config {
@@ -39,6 +40,7 @@ impl Default for FormatConfig {
             uppercase: Some(true),
             joins_as_top_level: Some(true),
             lines_between_queries: Some(2),
+            add_semicolons: Some(false),
         }
     }
 }
@@ -76,6 +78,7 @@ impl FormatConfig {
             lines_between_queries: override_config
                 .lines_between_queries
                 .or(self.lines_between_queries),
+            add_semicolons: override_config.add_semicolons.or(self.add_semicolons),
         }
     }
 }
