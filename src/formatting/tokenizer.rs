@@ -61,6 +61,34 @@ pub(crate) fn tokenize<'a>(
             tokens.push(result);
         }
     }
+
+    if options.add_semicolons {
+        let mut idx = tokens.len();
+        while idx > 0 {
+            idx -= 1;
+
+            match tokens[idx].kind {
+                TokenKind::Whitespace => {}
+                TokenKind::LineComment => {}
+                TokenKind::BlockComment => {}
+                _ => {
+                    if tokens[idx].value != ";" {
+                        tokens.insert(
+                            idx + 1,
+                            Token {
+                                kind: TokenKind::Operator,
+                                value: ";",
+                                key: None,
+                                alias: ";",
+                            },
+                        );
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
     tokens
 }
 

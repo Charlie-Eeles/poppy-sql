@@ -19,10 +19,6 @@ pub fn format_file(filename: &str, path: &Path, config: &Config) -> io::Result<(
 
         let mut new_contents = format_sql(&contents, config);
 
-        if new_contents.chars().last() != Some(';') && config.format.add_semicolons.unwrap_or(false)
-        {
-            new_contents.push(';');
-        }
         new_contents.push('\n');
 
         if new_contents != contents {
@@ -86,6 +82,7 @@ pub fn format_sql(sql: &str, config: &Config) -> String {
                 _ => Dialect::Generic,
             },
             lines_between_queries: format_config.lines_between_queries.unwrap_or(2),
+            add_semicolons: format_config.add_semicolons.unwrap_or(false),
             ..Default::default()
         },
     )

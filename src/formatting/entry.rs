@@ -63,6 +63,8 @@ pub struct FormatOptions<'a> {
     ///
     /// Default: Generic
     pub dialect: Dialect,
+
+    pub add_semicolons: bool,
 }
 
 impl<'a> Default for FormatOptions<'a> {
@@ -78,6 +80,7 @@ impl<'a> Default for FormatOptions<'a> {
             max_inline_top_level: None,
             joins_as_top_level: false,
             dialect: Dialect::Generic,
+            add_semicolons: false,
         }
     }
 }
