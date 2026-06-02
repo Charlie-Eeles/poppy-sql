@@ -3,7 +3,7 @@ use sqlparser::parser::Parser as SqlParser;
 
 use crate::Config;
 use crate::constants::IGNORE_STRING;
-use crate::formatting::format_sql;
+use crate::formatting::formatting::format_sql;
 use crate::parsing::common::ParsedSqlResult;
 
 pub fn find_sql_in_rust_file(

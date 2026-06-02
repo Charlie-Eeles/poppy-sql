@@ -6,10 +6,10 @@ use std::{
 
 use walkdir::{DirEntry, WalkDir};
 
-use crate::formatting::format_file;
 use crate::{
     config::{Config, config_for_file, config_for_walkdir_path},
     constants::{SKIPPED_DIRS, SUPPORTED_EXTENSIONS},
+    formatting::formatting::format_file,
 };
 
 pub mod config;

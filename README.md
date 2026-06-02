@@ -57,3 +57,14 @@ Dotfiles and some misc directories are skipped (like node_modules), exact matche
 Poppy-sql is in active development, but you should be able to use its latest releases with a touch of caution.
 
 Be aware that Poppy-sql follows semantic versioning to represent backwards incompatible changes and always double check the formatted results.
+
+
+## Acknowledgments
+
+The formatting module is based largely on the hard work done on the sqlformat-rs library and by extension sql-formatter-plus that it was based on.
+
+https://github.com/shssoichiro/sqlformat-rs
+
+https://github.com/kufii/sql-formatter-plus
+
+There is a more in-depth acknowledgment in the formatting module.
