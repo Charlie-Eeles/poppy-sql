@@ -5,9 +5,14 @@ use sqlx::{PgPool, query_scalar};
 pub async fn validate_query(pool: &PgPool, query_string: String) -> bool {
     let sql = format!("EXPLAIN {query_string}");
 
-    return match query_scalar::<_, String>(&sql).fetch_one(pool).await {
-        Ok(_) => {
+    match query_scalar::<_, String>(&sql).fetch_all(pool).await {
+        Ok(rows) => {
             println!("{}", "✔️ Query valid".green());
+
+            if let Some(first_line) = rows.first() {
+                println!("{} {}", "Plan:".cyan(), first_line.trim());
+            }
+
             true
         }
         Err(err) => {
@@ -29,8 +34,9 @@ pub async fn validate_query(pool: &PgPool, query_string: String) -> bool {
             let line = sql[..pos as usize - 1].lines().count();
 
             println!("{} {}", "Error:".red(), db_err.message());
-            println!("{} Likely at or near line {line}", "Hint:".yellow());
+            println!("{} Error likely at or near line {line}", "Hint:".yellow());
+
             false
         }
-    };
+    }
 }

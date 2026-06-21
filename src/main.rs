@@ -1,6 +1,7 @@
 use std::{env, fs, io, path::PathBuf};
 
 use clap::Parser;
+use dotenv::dotenv;
 use poppy_sql::watch::handlers::validate_query;
 use sqlx::postgres::PgPoolOptions;
 use tokio::time::{Duration, sleep};
@@ -24,20 +25,30 @@ struct Args {
     targets: Vec<PathBuf>,
 }
 
+fn get_env_var_or_exit(name: &str) -> String {
+    dotenv().ok();
+
+    match env::var(name) {
+        Ok(val) => val,
+        Err(_) => {
+            println!("Required variable not set in environment: {name}");
+            std::process::exit(1);
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> io::Result<()> {
     let args = Args::parse();
 
     if args.watch {
-        println!("watch mode enabled");
-        if args.db_url.is_none() {
-            println!("db_url argument required for watch command.");
-            std::process::exit(1);
-        }
+        let db_url = args
+            .db_url
+            .unwrap_or_else(|| get_env_var_or_exit("DATABASE_URL"));
 
         let pool = match PgPoolOptions::new()
             .max_connections(100)
-            .connect(&args.db_url.unwrap_or(String::from("")))
+            .connect(&db_url)
             .await
         {
             Ok(pool) => {
