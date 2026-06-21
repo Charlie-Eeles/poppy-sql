@@ -1,6 +1,7 @@
 use std::{env, fs, io, path::PathBuf};
 
 use clap::Parser;
+use colored::Colorize;
 use dotenv::dotenv;
 use poppy_sql::watch::handlers::validate_query;
 use sqlx::postgres::PgPoolOptions;
@@ -68,15 +69,35 @@ async fn main() -> io::Result<()> {
             .collect::<Vec<_>>();
 
         let mut prev_contents = String::new();
+        println!("{}", "====================".truecolor(128, 128, 128));
+
         loop {
             let contents = fs::read_to_string(paths.first().unwrap()).unwrap_or_default();
+
             if prev_contents == contents {
                 sleep(Duration::from_millis(200)).await;
                 continue;
-            };
-            prev_contents = String::from(&contents);
-            validate_query(&pool, contents).await;
+            }
+
+            prev_contents = contents.clone();
+
+            let mut queries = contents
+                .split(';')
+                .map(str::trim)
+                .filter(|query| !query.is_empty())
+                .enumerate()
+                .peekable();
+
+            while let Some((query_number, query)) = queries.next() {
+                validate_query(&pool, format!("{query};"), query_number + 1).await;
+
+                if !queries.peek().is_none() {
+                    println!("{}", "--------------------".truecolor(128, 128, 128));
+                }
+            }
+
             sleep(Duration::from_millis(200)).await;
+            println!("{}", "====================".truecolor(128, 128, 128));
         }
     } else if args.format {
         let paths = args
