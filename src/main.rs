@@ -68,36 +68,47 @@ async fn main() -> io::Result<()> {
             .chain(args.targets)
             .collect::<Vec<_>>();
 
-        let mut prev_contents = String::new();
-        println!("{}", "====================".truecolor(128, 128, 128));
+        if paths.is_empty() {
+            println!("No target paths provided.");
+            std::process::exit(1);
+        }
+
+        let mut prev_contents = vec![String::new(); paths.len()];
+
+        println!("{}", "====================".dimmed());
 
         loop {
-            let contents = fs::read_to_string(paths.first().unwrap()).unwrap_or_default();
+            for (path_index, path) in paths.iter().enumerate() {
+                let contents = fs::read_to_string(path).unwrap_or_default();
 
-            if prev_contents == contents {
-                sleep(Duration::from_millis(200)).await;
-                continue;
-            }
-
-            prev_contents = contents.clone();
-
-            let mut queries = contents
-                .split(';')
-                .map(str::trim)
-                .filter(|query| !query.is_empty())
-                .enumerate()
-                .peekable();
-
-            while let Some((query_number, query)) = queries.next() {
-                validate_query(&pool, format!("{query};"), query_number + 1).await;
-
-                if !queries.peek().is_none() {
-                    println!("{}", "--------------------".truecolor(128, 128, 128));
+                if prev_contents[path_index] == contents {
+                    continue;
                 }
+
+                prev_contents[path_index] = contents.clone();
+
+                println!("{} {}", "Watching:".dimmed(), path.display());
+                println!("{}", "====================".dimmed());
+
+                let mut queries = contents
+                    .split(';')
+                    .map(str::trim)
+                    .filter(|query| !query.is_empty())
+                    .enumerate()
+                    .peekable();
+
+                while let Some((query_number, query)) = queries.next() {
+                    validate_query(&pool, format!("{query};"), query_number + 1).await;
+
+                    if queries.peek().is_some() {
+                        println!("{}", "--------------------".dimmed());
+                    }
+                }
+
+                println!("{}", "====================".dimmed());
             }
 
             sleep(Duration::from_millis(200)).await;
-            println!("{}", "====================".truecolor(128, 128, 128));
         }
     } else if args.format {
         let paths = args
