@@ -16,6 +16,7 @@ pub mod config;
 pub mod constants;
 pub mod formatting;
 pub mod parsing;
+pub mod watch;
 
 fn should_walk_entry(entry: &DirEntry) -> bool {
     let Some(filename) = entry.file_name().to_str() else {

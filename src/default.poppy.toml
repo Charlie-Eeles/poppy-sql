@@ -1,7 +1,3 @@
-# The dialect of SQL to use for parsing/formatting
-# expects: string from the following options: "Generic" | "PostgreSQL" | "MySQL" | "SQLite"; recommended: Be specific for best results!
-dialect = "Generic"
-
 # The file types to parse, file types not in this list will be skipped
 # expects: array containing file extensions without the dot; supported filetypes: ["sql", "py", "rs", "ts", "js", "mjs", "vue"] or ["*"]
 filetypes = ["*"]

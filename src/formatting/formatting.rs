@@ -77,10 +77,7 @@ pub fn format_sql(sql: &str, config: &Config) -> String {
             indent: super::entry::Indent::Spaces(format_config.indent.unwrap_or(4)),
             uppercase: format_config.uppercase,
             joins_as_top_level: format_config.joins_as_top_level.unwrap_or(true),
-            dialect: match config.dialect() {
-                "PostgreSQL" => Dialect::PostgreSql,
-                _ => Dialect::Generic,
-            },
+            dialect: Dialect::PostgreSql,
             lines_between_queries: format_config.lines_between_queries.unwrap_or(2),
             add_semicolons: format_config.add_semicolons.unwrap_or(false),
             ..Default::default()

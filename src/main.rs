@@ -1,33 +1,130 @@
-use std::{env, io, path::PathBuf};
+use std::{env, fs, io, path::PathBuf};
 
 use clap::Parser;
+use colored::Colorize;
+use dotenv::dotenv;
+use poppy_sql::watch::handlers::validate_query;
+use sqlx::postgres::PgPoolOptions;
+use tokio::time::{Duration, sleep};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 struct Args {
-    #[arg(long = "file", value_name = "FILE")]
-    files_from_option: Vec<PathBuf>,
+    #[arg(short = 'f', long, conflicts_with = "watch")]
+    format: bool,
 
-    #[arg(value_name = "FILE")]
-    files: Vec<PathBuf>,
+    #[arg(short = 'w', long, conflicts_with = "format")]
+    watch: bool,
+
+    #[arg(short = 'd', long)]
+    db_url: Option<String>,
+
+    #[arg(short = 't', long = "target", value_name = "TARGET")]
+    option_target: Vec<PathBuf>,
+
+    #[arg(value_name = "TARGET")]
+    targets: Vec<PathBuf>,
 }
 
-fn main() -> io::Result<()> {
+fn get_env_var_or_exit(name: &str) -> String {
+    dotenv().ok();
+
+    match env::var(name) {
+        Ok(val) => val,
+        Err(_) => {
+            println!("Required variable not set in environment: {name}");
+            std::process::exit(1);
+        }
+    }
+}
+
+#[tokio::main]
+async fn main() -> io::Result<()> {
     let args = Args::parse();
 
-    let paths = args
-        .files_from_option
-        .into_iter()
-        .chain(args.files)
-        .collect::<Vec<_>>();
+    if args.watch {
+        let db_url = args
+            .db_url
+            .unwrap_or_else(|| get_env_var_or_exit("DATABASE_URL"));
 
-    if paths.is_empty() {
-        let current_dir = env::current_dir()?;
-        return poppy_sql::process_path(&current_dir);
-    }
+        let pool = match PgPoolOptions::new()
+            .max_connections(100)
+            .connect(&db_url)
+            .await
+        {
+            Ok(pool) => {
+                println!("Successfully connected to the database.");
+                pool
+            }
+            Err(err) => {
+                println!("An error occurred connecting to the database: {err}");
+                std::process::exit(1);
+            }
+        };
 
-    for path in paths {
-        poppy_sql::process_path(&path)?;
+        let paths = args
+            .option_target
+            .into_iter()
+            .chain(args.targets)
+            .collect::<Vec<_>>();
+
+        if paths.is_empty() {
+            println!("No target paths provided.");
+            std::process::exit(1);
+        }
+
+        let mut prev_contents = vec![String::new(); paths.len()];
+
+        println!("{}", "====================".dimmed());
+
+        loop {
+            for (path_index, path) in paths.iter().enumerate() {
+                let contents = fs::read_to_string(path).unwrap_or_default();
+
+                if prev_contents[path_index] == contents {
+                    continue;
+                }
+
+                prev_contents[path_index] = contents.clone();
+
+                println!("{} {}", "Watching:".dimmed(), path.display());
+                println!("{}", "====================".dimmed());
+
+                let mut queries = contents
+                    .split(';')
+                    .map(str::trim)
+                    .filter(|query| !query.is_empty())
+                    .enumerate()
+                    .peekable();
+
+                while let Some((query_number, query)) = queries.next() {
+                    validate_query(&pool, format!("{query};"), query_number + 1).await;
+
+                    if queries.peek().is_some() {
+                        println!("{}", "--------------------".dimmed());
+                    }
+                }
+
+                println!("{}", "====================".dimmed());
+            }
+
+            sleep(Duration::from_millis(200)).await;
+        }
+    } else if args.format {
+        let paths = args
+            .option_target
+            .into_iter()
+            .chain(args.targets)
+            .collect::<Vec<_>>();
+
+        if paths.is_empty() {
+            let current_dir = env::current_dir()?;
+            return poppy_sql::process_path(&current_dir);
+        }
+
+        for path in paths {
+            poppy_sql::process_path(&path)?;
+        }
     }
 
     Ok(())
