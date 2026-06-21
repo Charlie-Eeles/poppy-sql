@@ -1,4 +1,4 @@
-use sqlparser::dialect::{GenericDialect, MySqlDialect, PostgreSqlDialect, SQLiteDialect};
+use sqlparser::dialect::PostgreSqlDialect;
 use sqlparser::parser::Parser as SqlParser;
 
 use crate::Config;
@@ -40,12 +40,7 @@ pub fn find_sql_in_javascript_file(
 
         let (raw_sql, after_sql) = unprocessed_contents.split_at(end_rel);
 
-        let parsed_sql = match config.dialect() {
-            "PostgreSQL" => SqlParser::parse_sql(&PostgreSqlDialect {}, raw_sql),
-            "MySQL" => SqlParser::parse_sql(&MySqlDialect {}, raw_sql),
-            "SQLite" => SqlParser::parse_sql(&SQLiteDialect {}, raw_sql),
-            _ => SqlParser::parse_sql(&GenericDialect {}, raw_sql),
-        };
+        let parsed_sql = SqlParser::parse_sql(&PostgreSqlDialect {}, raw_sql);
 
         let is_valid_sql_query = !raw_sql.contains("${") && parsed_sql.is_ok();
         let do_format =

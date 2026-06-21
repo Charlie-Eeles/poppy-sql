@@ -1,15 +1,7 @@
 [![Crates.io](https://img.shields.io/crates/v/poppy-sql.svg)](https://crates.io/crates/poppy-sql)
 
 ## Poppy-sql
-Very fast parser and formatter for standalone and embedded SQL
-
-### Dialect support
-Explicit support for:
-- PostgreSQL
-- MySQL
-- SQLite
-
-Generic SQL dialect supported.
+Very fast parser and formatter for standalone and embedded PostgreSQL
 
 ### What is this for?
 Raw SQL doesn't only live in SQL files, it's often embedded in application code.
@@ -23,7 +15,7 @@ Poppy-sql is useful for:
 #### As a formatter (binary)
 Poppy-sql is available to install through cargo using: `cargo install poppy-sql`
 
-Run `poppy-sql` in a directory with the files you want formatted in it, `poppy-sql '{target_file}'` to format a specific file, or `poppy-sql '{target_file1} {target_file2}'` to format multiple files.
+Run `poppy-sql` in a directory with the files you want formatted in it, `poppy-sql -f {target_file}` to format a specific file, or `poppy-sql -f {target_file1} {target_file2}` to format multiple files.
 
 You can ignore queries on a per-query basis by adding a comment anywhere in the query like: `-- poppy-ignore`
 
@@ -32,7 +24,7 @@ It can be integrated into your `.pre-commit-config.yaml` like:
 ```yaml
 repos:
   - repo: https://github.com/starflower-sh/poppy-sql
-    rev: v0.4.0
+    rev: v0.8.0
     hooks:
       - id: poppy-sql
 ```
