@@ -125,6 +125,7 @@ async fn main() -> io::Result<()> {
                             contents = fs::read_to_string(path).unwrap_or_default();
                         }
 
+                        println!("{} {}", "Watching:".dimmed(), path.display());
                         println!("{}", "====================".dimmed());
 
                         let mut queries = contents
