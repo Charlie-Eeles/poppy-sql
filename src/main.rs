@@ -1,19 +1,21 @@
-use std::{env, fs, io, path::PathBuf};
+use std::{env, fs, io, path::PathBuf, time::Instant};
 
 use clap::Parser;
 use colored::Colorize;
 use dotenv::dotenv;
+use notify::{Event, RecursiveMode, Result, Watcher};
 use poppy_sql::watch::handlers::validate_query;
 use sqlx::postgres::PgPoolOptions;
-use tokio::time::{Duration, sleep};
+use std::{path::Path, sync::mpsc};
+use tokio::time::Duration;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 struct Args {
-    #[arg(short = 'f', long, conflicts_with = "watch")]
+    #[arg(short = 'f', long)]
     format: bool,
 
-    #[arg(short = 'w', long, conflicts_with = "format")]
+    #[arg(short = 'w', long)]
     watch: bool,
 
     #[arg(short = 'd', long)]
@@ -42,7 +44,19 @@ fn get_env_var_or_exit(name: &str) -> String {
 async fn main() -> io::Result<()> {
     let args = Args::parse();
 
+    let paths = args
+        .option_target
+        .into_iter()
+        .chain(args.targets)
+        .collect::<Vec<_>>();
+
+    //TODO: This logic shouldn't be in main - this should be properly abstracted
     if args.watch {
+        if paths.is_empty() {
+            println!("No target paths provided.");
+            std::process::exit(1);
+        }
+
         let db_url = args
             .db_url
             .unwrap_or_else(|| get_env_var_or_exit("DATABASE_URL"));
@@ -62,61 +76,79 @@ async fn main() -> io::Result<()> {
             }
         };
 
-        let paths = args
-            .option_target
-            .into_iter()
-            .chain(args.targets)
-            .collect::<Vec<_>>();
-
-        if paths.is_empty() {
-            println!("No target paths provided.");
-            std::process::exit(1);
-        }
-
-        let mut prev_contents = vec![String::new(); paths.len()];
-
+        println!("{}", "====================".dimmed());
+        println!("Watching for file changes.");
         println!("{}", "====================".dimmed());
 
-        loop {
-            for (path_index, path) in paths.iter().enumerate() {
-                let contents = fs::read_to_string(path).unwrap_or_default();
+        let (tx, rx) = mpsc::channel::<Result<Event>>();
 
-                if prev_contents[path_index] == contents {
-                    continue;
-                }
+        let mut watcher = match notify::recommended_watcher(tx) {
+            Ok(watcher) => watcher,
+            Err(err) => {
+                println!("An error occurred creating watcher: {err}");
+                std::process::exit(1);
+            }
+        };
 
-                prev_contents[path_index] = contents.clone();
+        let debounce_duration = Duration::from_millis(200);
+        let mut last_event_time = Instant::now() - debounce_duration;
 
-                println!("{} {}", "Watching:".dimmed(), path.display());
-                println!("{}", "====================".dimmed());
+        match watcher.watch(Path::new("."), RecursiveMode::NonRecursive) {
+            Ok(_) => {}
+            Err(err) => {
+                println!("An error occurred starting watcher: {err}");
+                std::process::exit(1);
+            }
+        };
 
-                let mut queries = contents
-                    .split(';')
-                    .map(str::trim)
-                    .filter(|query| !query.is_empty())
-                    .enumerate()
-                    .peekable();
+        for res in rx {
+            match res {
+                Ok(event) => {
+                    if !matches!(
+                        event.kind,
+                        notify::EventKind::Modify(notify::event::ModifyKind::Data(_))
+                    ) {
+                        continue;
+                    }
 
-                while let Some((query_number, query)) = queries.next() {
-                    validate_query(&pool, format!("{query};"), query_number + 1).await;
+                    let now = Instant::now();
+                    if now.duration_since(last_event_time) < debounce_duration {
+                        continue;
+                    }
+                    last_event_time = now;
 
-                    if queries.peek().is_some() {
-                        println!("{}", "--------------------".dimmed());
+                    for (_, path) in paths.iter().enumerate() {
+                        let mut contents = fs::read_to_string(path).unwrap_or_default();
+
+                        if args.format {
+                            poppy_sql::process_path(path)?;
+                            contents = fs::read_to_string(path).unwrap_or_default();
+                        }
+
+                        println!("{}", "====================".dimmed());
+
+                        let mut queries = contents
+                            .split(';')
+                            .map(str::trim)
+                            .filter(|query| !query.is_empty())
+                            .enumerate()
+                            .peekable();
+
+                        while let Some((query_number, query)) = queries.next() {
+                            validate_query(&pool, format!("{query};"), query_number + 1).await;
+
+                            if queries.peek().is_some() {
+                                println!("{}", "--------------------".dimmed());
+                            }
+                        }
+
+                        println!("{}", "====================".dimmed());
                     }
                 }
-
-                println!("{}", "====================".dimmed());
+                Err(e) => println!("watch error: {:?}", e),
             }
-
-            sleep(Duration::from_millis(200)).await;
         }
     } else if args.format {
-        let paths = args
-            .option_target
-            .into_iter()
-            .chain(args.targets)
-            .collect::<Vec<_>>();
-
         if paths.is_empty() {
             let current_dir = env::current_dir()?;
             return poppy_sql::process_path(&current_dir);

@@ -1,12 +1,28 @@
 use colored::Colorize;
 use sqlx::postgres::{PgDatabaseError, PgErrorPosition};
-use sqlx::{PgPool, query_scalar};
+use sqlx::{PgPool, query, query_scalar};
 
 pub async fn validate_query(pool: &PgPool, query_string: String, query_number: usize) -> bool {
-    let sql = format!("EXPLAIN {query_string}");
+    let result = if is_explainable(&query_string) {
+        query_scalar::<_, String>(&format!("EXPLAIN {query_string}"))
+            .fetch_all(pool)
+            .await
+            .map(|rows| rows.first().cloned())
+            .map_err(|err| (err, "EXPLAIN ".len()))
+    } else {
+        match pool.begin().await {
+            Ok(mut tx) => {
+                let result = query(&query_string).execute(&mut *tx).await;
+                let _ = tx.rollback().await;
 
-    match query_scalar::<_, String>(&sql).fetch_all(pool).await {
-        Ok(rows) => {
+                result.map(|_| None).map_err(|err| (err, 0))
+            }
+            Err(err) => Err((err, 0)),
+        }
+    };
+
+    match result {
+        Ok(plan) => {
             println!(
                 "{} {} {}",
                 "✔️ Query valid".green(),
@@ -14,13 +30,13 @@ pub async fn validate_query(pool: &PgPool, query_string: String, query_number: u
                 truncate_query(query_string).dimmed()
             );
 
-            if let Some(first_line) = rows.first() {
-                println!("{} {}", "Plan:".cyan(), first_line.trim());
+            if let Some(plan) = plan {
+                println!("{} {}", "Plan:".cyan(), plan.trim());
             }
 
             true
         }
-        Err(err) => {
+        Err((err, offset)) => {
             let Some(db_err) = err.as_database_error() else {
                 println!("{} {}", format!("Query {query_number}:").red(), err);
                 println!("{} {}", "Query:".yellow(), query_string.dimmed());
@@ -31,8 +47,12 @@ pub async fn validate_query(pool: &PgPool, query_string: String, query_number: u
                 .try_downcast_ref::<PgDatabaseError>()
                 .and_then(|err| match err.position() {
                     Some(PgErrorPosition::Original(pos)) => {
-                        let query_pos = (pos as usize).saturating_sub("EXPLAIN ".len() + 1);
-                        Some(query_string[..query_pos].lines().count())
+                        let query_pos = (pos as usize).saturating_sub(offset + 1);
+                        Some(
+                            query_string[..query_pos.min(query_string.len())]
+                                .lines()
+                                .count(),
+                        )
                     }
                     _ => None,
                 });
@@ -67,6 +87,20 @@ pub async fn validate_query(pool: &PgPool, query_string: String, query_number: u
             false
         }
     }
+}
+
+fn is_explainable(sql: &str) -> bool {
+    let first_word = sql
+        .trim_start()
+        .split(|c: char| c.is_whitespace() || c == '(')
+        .next()
+        .unwrap_or("")
+        .to_ascii_uppercase();
+
+    matches!(
+        first_word.as_str(),
+        "SELECT" | "INSERT" | "UPDATE" | "DELETE" | "MERGE" | "WITH" | "VALUES" | "TABLE"
+    )
 }
 
 fn truncate_query(sql: String) -> String {
