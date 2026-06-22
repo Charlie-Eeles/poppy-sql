@@ -50,6 +50,7 @@ async fn main() -> io::Result<()> {
         .chain(args.targets)
         .collect::<Vec<_>>();
 
+    //TODO: This logic shouldn't be in main - this should be properly abstracted
     if args.watch {
         if paths.is_empty() {
             println!("No target paths provided.");
@@ -75,6 +76,8 @@ async fn main() -> io::Result<()> {
             }
         };
 
+        println!("{}", "====================".dimmed());
+        println!("Watching for file changes.");
         println!("{}", "====================".dimmed());
 
         let (tx, rx) = mpsc::channel::<Result<Event>>();
