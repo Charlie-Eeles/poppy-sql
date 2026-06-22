@@ -10,10 +10,10 @@ use tokio::time::{Duration, sleep};
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 struct Args {
-    #[arg(short = 'f', long, conflicts_with = "watch")]
+    #[arg(short = 'f', long)]
     format: bool,
 
-    #[arg(short = 'w', long, conflicts_with = "format")]
+    #[arg(short = 'w', long)]
     watch: bool,
 
     #[arg(short = 'd', long)]
@@ -42,7 +42,18 @@ fn get_env_var_or_exit(name: &str) -> String {
 async fn main() -> io::Result<()> {
     let args = Args::parse();
 
+    let paths = args
+        .option_target
+        .into_iter()
+        .chain(args.targets)
+        .collect::<Vec<_>>();
+
     if args.watch {
+        if paths.is_empty() {
+            println!("No target paths provided.");
+            std::process::exit(1);
+        }
+
         let db_url = args
             .db_url
             .unwrap_or_else(|| get_env_var_or_exit("DATABASE_URL"));
@@ -62,27 +73,21 @@ async fn main() -> io::Result<()> {
             }
         };
 
-        let paths = args
-            .option_target
-            .into_iter()
-            .chain(args.targets)
-            .collect::<Vec<_>>();
-
-        if paths.is_empty() {
-            println!("No target paths provided.");
-            std::process::exit(1);
-        }
-
         let mut prev_contents = vec![String::new(); paths.len()];
 
         println!("{}", "====================".dimmed());
 
         loop {
             for (path_index, path) in paths.iter().enumerate() {
-                let contents = fs::read_to_string(path).unwrap_or_default();
+                let mut contents = fs::read_to_string(path).unwrap_or_default();
 
                 if prev_contents[path_index] == contents {
                     continue;
+                }
+
+                if args.format {
+                    poppy_sql::process_path(path)?;
+                    contents = fs::read_to_string(path).unwrap_or_default();
                 }
 
                 prev_contents[path_index] = contents.clone();
@@ -111,12 +116,6 @@ async fn main() -> io::Result<()> {
             sleep(Duration::from_millis(200)).await;
         }
     } else if args.format {
-        let paths = args
-            .option_target
-            .into_iter()
-            .chain(args.targets)
-            .collect::<Vec<_>>();
-
         if paths.is_empty() {
             let current_dir = env::current_dir()?;
             return poppy_sql::process_path(&current_dir);
