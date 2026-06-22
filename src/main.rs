@@ -1,11 +1,13 @@
-use std::{env, fs, io, path::PathBuf};
+use std::{env, fs, io, path::PathBuf, time::Instant};
 
 use clap::Parser;
 use colored::Colorize;
 use dotenv::dotenv;
+use notify::{Event, RecursiveMode, Result, Watcher};
 use poppy_sql::watch::handlers::validate_query;
 use sqlx::postgres::PgPoolOptions;
-use tokio::time::{Duration, sleep};
+use std::{path::Path, sync::mpsc};
+use tokio::time::Duration;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
@@ -73,47 +75,64 @@ async fn main() -> io::Result<()> {
             }
         };
 
-        let mut prev_contents = vec![String::new(); paths.len()];
-
         println!("{}", "====================".dimmed());
 
-        loop {
-            for (path_index, path) in paths.iter().enumerate() {
-                let mut contents = fs::read_to_string(path).unwrap_or_default();
+        let (tx, rx) = mpsc::channel::<Result<Event>>();
 
-                if prev_contents[path_index] == contents {
-                    continue;
-                }
+        let mut watcher = notify::recommended_watcher(tx).unwrap();
 
-                if args.format {
-                    poppy_sql::process_path(path)?;
-                    contents = fs::read_to_string(path).unwrap_or_default();
-                }
+        let debounce_duration = Duration::from_millis(200);
+        let mut last_event_time = Instant::now() - debounce_duration;
 
-                prev_contents[path_index] = contents.clone();
+        watcher
+            .watch(Path::new("."), RecursiveMode::NonRecursive)
+            .unwrap();
+        for res in rx {
+            match res {
+                Ok(event) => {
+                    if !matches!(
+                        event.kind,
+                        notify::EventKind::Modify(notify::event::ModifyKind::Data(_))
+                    ) {
+                        continue;
+                    }
 
-                println!("{} {}", "Watching:".dimmed(), path.display());
-                println!("{}", "====================".dimmed());
+                    let now = Instant::now();
+                    if now.duration_since(last_event_time) < debounce_duration {
+                        continue;
+                    }
+                    last_event_time = now;
 
-                let mut queries = contents
-                    .split(';')
-                    .map(str::trim)
-                    .filter(|query| !query.is_empty())
-                    .enumerate()
-                    .peekable();
+                    for (_, path) in paths.iter().enumerate() {
+                        let mut contents = fs::read_to_string(path).unwrap_or_default();
 
-                while let Some((query_number, query)) = queries.next() {
-                    validate_query(&pool, format!("{query};"), query_number + 1).await;
+                        if args.format {
+                            poppy_sql::process_path(path)?;
+                            contents = fs::read_to_string(path).unwrap_or_default();
+                        }
 
-                    if queries.peek().is_some() {
-                        println!("{}", "--------------------".dimmed());
+                        println!("{}", "====================".dimmed());
+
+                        let mut queries = contents
+                            .split(';')
+                            .map(str::trim)
+                            .filter(|query| !query.is_empty())
+                            .enumerate()
+                            .peekable();
+
+                        while let Some((query_number, query)) = queries.next() {
+                            validate_query(&pool, format!("{query};"), query_number + 1).await;
+
+                            if queries.peek().is_some() {
+                                println!("{}", "--------------------".dimmed());
+                            }
+                        }
+
+                        println!("{}", "====================".dimmed());
                     }
                 }
-
-                println!("{}", "====================".dimmed());
+                Err(e) => println!("watch error: {:?}", e),
             }
-
-            sleep(Duration::from_millis(200)).await;
         }
     } else if args.format {
         if paths.is_empty() {
