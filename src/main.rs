@@ -79,14 +79,25 @@ async fn main() -> io::Result<()> {
 
         let (tx, rx) = mpsc::channel::<Result<Event>>();
 
-        let mut watcher = notify::recommended_watcher(tx).unwrap();
+        let mut watcher = match notify::recommended_watcher(tx) {
+            Ok(watcher) => watcher,
+            Err(err) => {
+                println!("An error occurred creating watcher: {err}");
+                std::process::exit(1);
+            }
+        };
 
         let debounce_duration = Duration::from_millis(200);
         let mut last_event_time = Instant::now() - debounce_duration;
 
-        watcher
-            .watch(Path::new("."), RecursiveMode::NonRecursive)
-            .unwrap();
+        match watcher.watch(Path::new("."), RecursiveMode::NonRecursive) {
+            Ok(_) => {}
+            Err(err) => {
+                println!("An error occurred starting watcher: {err}");
+                std::process::exit(1);
+            }
+        };
+
         for res in rx {
             match res {
                 Ok(event) => {
